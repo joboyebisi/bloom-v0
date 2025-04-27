@@ -1,103 +1,148 @@
-import Image from "next/image";
+"use client";
+
+// import { Button } from "@/components/ui/button"; // No longer needed here
+import { ImageUploader } from "@/components/image-uploader";
+import { ModelViewer } from "@/components/model-viewer";
+import { useModelContext } from "@/context/model-context";
+import { useEffect, useState, useRef } from "react";
+import { toast } from "sonner";
+import { Upload, Cpu, Eye, Download } from 'lucide-react'; // Added Download icon
+import { Button } from "@/components/ui/button"; // Added Button import
+import { ParticipationModal } from "@/components/participation-modal"; // Import the modal
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  // Get state from context
+  const { generatedModelUrl, isLoading, error, clearError } = useModelContext();
+  // State for participation modal visibility
+  const [participationModalOpen, setParticipationModalOpen] = useState(false);
+  // Ref for the hidden download link
+  const downloadLinkRef = useRef<HTMLAnchorElement>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // Show error toast if generation fails
+  useEffect(() => {
+    if (error) {
+      toast.error("Generation Failed: " + error, {
+         // Keep toast visible until dismissed or error cleared
+        duration: Infinity, 
+        onDismiss: clearError, // Clear error state when toast is dismissed
+      });
+    }
+  }, [error, clearError]);
+
+  // Function to trigger download after successful modal submission
+  const handleDownload = () => {
+    if (downloadLinkRef.current) {
+      downloadLinkRef.current.click(); // Programmatically click the hidden link
+    }
+  };
+
+  // Function to handle the visible download button click (opens modal)
+  const handleDownloadAttempt = () => {
+     if (generatedModelUrl && !isLoading) {
+         setParticipationModalOpen(true);
+     }
+  };
+
+  return (
+    // Main container now includes Hero + Flex container
+    <main className="flex flex-grow flex-col items-center justify-start p-4 gap-8 md:gap-12">
+      
+      {/* Hero Section - MOVED HERE */}
+      <section className="w-full text-center py-10 md:py-16 bg-gradient-to-r from-cyan-50 via-blue-50 to-purple-50 rounded-lg shadow-sm">
+        <h1 className="text-3xl md:text-4xl font-bold mb-4 text-gray-800 px-4">
+          BLOOM: AI-Aided 3D/VR Content Authoring for Dental Educators
+        </h1>
+        <p className="text-md md:text-lg max-w-3xl mx-auto text-gray-600 px-4">
+          Create 3D Models from your dental image bank that can be used for teaching on VR-Haptics Dental Simulators, VR Headsets or for teaching in classroom.
+        </p>
+      </section>
+
+      {/* How It Works Section - ADDED HERE */}
+      <section className="w-full px-4 md:px-6 max-w-5xl mx-auto">
+        <h2 className="text-2xl md:text-3xl font-semibold text-center mb-10 text-gray-800">How It Works</h2>
+        <div className="grid md:grid-cols-3 gap-8 text-center">
+          {/* Step 1 */}
+          <div className="flex flex-col items-center p-6 bg-gray-50 rounded-lg shadow-sm">
+            <Upload className="w-12 h-12 text-blue-600 mb-4" strokeWidth={1.5} />
+            <h3 className="text-lg font-semibold mb-2">Step 1: Upload</h3>
+            <p className="text-sm text-gray-600">
+              Upload 2D images or provide text descriptions of the desired dental scenario.
+            </p>
+          </div>
+          {/* Step 2 */}
+          <div className="flex flex-col items-center p-6 bg-gray-50 rounded-lg shadow-sm">
+            <Cpu className="w-12 h-12 text-blue-600 mb-4" strokeWidth={1.5} />
+            <h3 className="text-lg font-semibold mb-2">Step 2: Generate</h3>
+            <p className="text-sm text-gray-600">
+              Our AI-powered tool processes your input to generate a 3D model.
+            </p>
+          </div>
+          {/* Step 3 */}
+          <div className="flex flex-col items-center p-6 bg-gray-50 rounded-lg shadow-sm">
+            <Eye className="w-12 h-12 text-blue-600 mb-4" strokeWidth={1.5} />
+            <h3 className="text-lg font-semibold mb-2">Step 3: Use</h3>
+            <p className="text-sm text-gray-600">
+              View, interact with, and download your custom 3D learning asset for use in VR simulators.
+            </p>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      </section>
+
+      {/* Container for Uploader and Viewer (side-by-side on md+) */}
+      <div className="w-full flex flex-col md:flex-row items-center md:items-start justify-center gap-8">
+          {/* Viewer Area */}
+          <div className="w-full md:w-2/3 flex flex-col items-center justify-center order-1 md:order-2">
+            <div className="w-full max-w-3xl h-[500px] flex items-center justify-center border rounded bg-gray-50 mb-4 md:mb-0">
+              {generatedModelUrl ? (
+                <ModelViewer 
+                  modelUrl={`/api/proxy-model?url=${encodeURIComponent(generatedModelUrl)}`} 
+                />
+              ) : isLoading ? (
+                <div className="text-center">
+                  <p className="text-lg font-semibold">Generating Model...</p>
+                  <p className="text-sm text-gray-600">Please wait.</p>
+                </div>
+              ) : (
+                <div className="text-center text-gray-500">
+                  <p>Upload an image using the panel on the left.</p>
+                  <p>(Generated 3D model will appear here)</p>
+                </div>
+              )}
+            </div>
+            {/* Visible Download Button (triggers modal) */}
+            <div className="mt-4 text-center">
+              <Button 
+                variant="outline"
+                disabled={!generatedModelUrl || isLoading} // Disabled if no model or loading
+                onClick={handleDownloadAttempt} // Opens modal
+              >
+                <Download className="mr-2 h-4 w-4" />
+                 Download 3D Model (GLB)
+              </Button>
+              {/* Hidden actual download link */}
+              <a 
+                ref={downloadLinkRef}
+                href={generatedModelUrl || '#'}
+                download={generatedModelUrl ? `bloom-model-${Date.now()}.glb` : undefined}
+                style={{ display: 'none' }} // Keep hidden
+              >
+                Hidden Download Trigger
+              </a>
+            </div>
+          </div>
+          
+          {/* Uploader Area */}
+          <div className="w-full md:w-1/3 flex justify-center items-start order-2 md:order-1">
+            <ImageUploader />
+          </div>
+      </div>
+
+      {/* Participation Modal Instance (for download trigger) */}
+      <ParticipationModal 
+        isOpen={participationModalOpen} 
+        onOpenChange={setParticipationModalOpen} 
+        onSuccess={handleDownload} // Trigger download on success
+      />
+    </main>
   );
 }
