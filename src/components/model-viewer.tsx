@@ -1,8 +1,8 @@
 'use client';
 
-import React, { Suspense, useRef, useEffect } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Grid, Environment, Center, useGLTF } from '@react-three/drei';
+import { OrbitControls, Grid, Center, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import ErrorBoundary from './ErrorBoundary';
 

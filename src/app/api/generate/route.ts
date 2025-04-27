@@ -22,6 +22,9 @@ interface FalOutputData {
   seed: number;
 }
 
+// Removed FalSubscribeResult interface as it caused type constraint issues
+// interface FalSubscribeResult { ... }
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -41,7 +44,8 @@ export async function POST(request: NextRequest) {
 
     // 2. Call the Fal AI model using fal.subscribe (simpler for direct result)
     console.log("API Route: Calling Fal AI model...");
-    const result: any = await fal.subscribe("fal-ai/hunyuan3d/v2/turbo", {
+    // Assign to unknown first, then cast where needed
+    const result: unknown = await fal.subscribe("fal-ai/hunyuan3d/v2/turbo", {
       input: {
         input_image_url: imageUrl,
         // Add any other parameters from the schema if needed
@@ -57,8 +61,8 @@ export async function POST(request: NextRequest) {
     });
 
     // 3. Extract the model URL from the result.data
-    // Access the nested 'data' property from the Fal subscribe result
-    const output = result.data as FalOutputData; 
+    // Type assertion when accessing nested properties
+    const output = (result as { data: FalOutputData })?.data;
 
     if (!output?.model_mesh?.url) {
         console.error("API Route Error: Fal AI response data missing model_mesh.url", result); // Log the full result for debugging
