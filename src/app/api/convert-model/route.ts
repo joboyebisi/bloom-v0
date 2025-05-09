@@ -37,19 +37,18 @@ export async function POST(request: NextRequest) {
     });
 
     if (!microserviceResponse.ok) {
-      // Try to get error details from the microservice response
       let errorBody = 'Conversion microservice failed.';
       try {
         const errJson = await microserviceResponse.json();
         errorBody = errJson.detail || JSON.stringify(errJson);
-      } catch (_e) { // <-- The fix is here (e changed to _e)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (_e) { // _e was e, ESLint disable comment added above
         errorBody = await microserviceResponse.text();
       }
       console.error(`Error from Python microservice (status ${microserviceResponse.status}):`, errorBody);
       return NextResponse.json({ error: `Conversion failed: ${errorBody}` }, { status: microserviceResponse.status });
     }
 
-    // Stream the response from the microservice (the converted file) back to the client
     const fileData = await microserviceResponse.arrayBuffer();
     const contentType = microserviceResponse.headers.get('content-type') || 'application/octet-stream';
     const contentDisposition = microserviceResponse.headers.get('content-disposition');
@@ -59,7 +58,6 @@ export async function POST(request: NextRequest) {
     if (contentDisposition) {
       headers.set('Content-Disposition', contentDisposition);
     }
-    // Set Content-Length if available, though arrayBuffer implies it's known
     headers.set('Content-Length', fileData.byteLength.toString());
 
     console.log(`API Route (convert-model): Successfully received converted file. Type: ${contentType}, Size: ${fileData.byteLength} bytes. Forwarding to client.`);
