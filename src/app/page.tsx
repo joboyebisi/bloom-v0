@@ -8,13 +8,16 @@ import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 import { Upload, Cpu, Eye, Download } from 'lucide-react'; // Added Download icon
 import { Button } from "@/components/ui/button"; // Added Button import
-import { ParticipationModal } from "@/components/participation-modal"; // Import the modal
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function Home() {
   // Get state from context
   const { generatedModelUrl, isLoading, error, clearError } = useModelContext();
-  // State for participation modal visibility
-  const [participationModalOpen, setParticipationModalOpen] = useState(false);
   // Ref for the hidden download link
   const downloadLinkRef = useRef<HTMLAnchorElement>(null);
 
@@ -29,17 +32,76 @@ export default function Home() {
     }
   }, [error, clearError]);
 
-  // Function to trigger download after successful modal submission
-  const handleDownload = () => {
-    if (downloadLinkRef.current) {
-      downloadLinkRef.current.click(); // Programmatically click the hidden link
-    }
-  };
-
-  // Function to handle the visible download button click (opens modal)
-  const handleDownloadAttempt = () => {
+  // Function to handle the download attempt based on selected format
+  const handleDownloadAttempt = async (format: "glb" | "stl" | "obj") => {
      if (generatedModelUrl && !isLoading) {
-         setParticipationModalOpen(true);
+         if (format === "glb") {
+            // For GLB, use the existing direct download logic
+            if (downloadLinkRef.current) {
+              downloadLinkRef.current.href = generatedModelUrl; // GLB URL is already absolute
+              downloadLinkRef.current.download = `bloom-model-${Date.now()}.glb`;
+              downloadLinkRef.current.click();
+            }
+         } else {
+          // For STL/OBJ, call the conversion API
+          toast.info(`Requesting ${format.toUpperCase()} conversion... This may take a moment.`);
+          try {
+            const apiUrl = process.env.NEXT_PUBLIC_CONVERSION_API_URL;
+            if (!apiUrl) {
+              throw new Error("Conversion API URL is not configured.");
+            }
+
+            const response = await fetch(apiUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                glb_url: generatedModelUrl,
+                output_format: format,
+              }),
+            });
+
+            if (!response.ok) {
+              let errorMsg = `Failed to convert to ${format.toUpperCase()}`;
+              try {
+                const errorResult = await response.json();
+                errorMsg = errorResult.error || errorMsg;
+              } catch (e) {
+                // If parsing error JSON fails, use the status text
+                errorMsg = `${errorMsg} (Status: ${response.status} ${response.statusText})`;
+              }
+              throw new Error(errorMsg);
+            }
+
+            // Get filename from Content-Disposition header if available
+            const disposition = response.headers.get('content-disposition');
+            let filename = `bloom-model-${Date.now()}.${format}`;
+            if (disposition && disposition.indexOf('attachment') !== -1) {
+              const filenameRegex = /filename[^;=\n]*=((['"])(.*?)\2|[^;\n]*)/;
+              const matches = filenameRegex.exec(disposition);
+              if (matches != null && matches[3]) {
+                filename = matches[3];
+              }
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a); // Required for Firefox
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+
+            toast.success(`Successfully downloaded ${filename}`);
+
+          } catch (apiError) {
+            console.error(`Error converting to ${format.toUpperCase()}:`, apiError);
+            toast.error(apiError instanceof Error ? apiError.message : `Could not convert to ${format.toUpperCase()}`);
+          }
+         }
      }
   };
 
@@ -111,15 +173,29 @@ export default function Home() {
             </div>
             {/* Visible Download Button (triggers modal) */}
             <div className="mt-4 text-center">
-              <Button 
-                variant="outline"
-                disabled={!generatedModelUrl || isLoading} // Disabled if no model or loading
-                onClick={handleDownloadAttempt} // Opens modal
-              >
-                <Download className="mr-2 h-4 w-4" />
-                 Download 3D Model (GLB)
-              </Button>
-              {/* Hidden actual download link */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="outline"
+                    disabled={!generatedModelUrl || isLoading}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Download Model
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleDownloadAttempt("glb")} disabled={!generatedModelUrl || isLoading}>
+                    Download as GLB
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleDownloadAttempt("stl")} disabled={!generatedModelUrl || isLoading}>
+                    Download as STL
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleDownloadAttempt("obj")} disabled={!generatedModelUrl || isLoading}>
+                    Download as OBJ
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              {/* Hidden actual download link (primarily for GLB direct download) */}
               <a 
                 ref={downloadLinkRef}
                 href={generatedModelUrl || '#'}
@@ -136,13 +212,6 @@ export default function Home() {
             <ImageUploader />
           </div>
       </div>
-
-      {/* Participation Modal Instance (for download trigger) */}
-      <ParticipationModal 
-        isOpen={participationModalOpen} 
-        onOpenChange={setParticipationModalOpen} 
-        onSuccess={handleDownload} // Trigger download on success
-      />
     </main>
   );
 }
