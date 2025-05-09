@@ -62,8 +62,8 @@ export default function Home() {
             try {
               const errorResult = await response.json();
               errorMsg = errorResult.error || errorMsg;
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            } catch (_e) { // _e was e, ESLint disable comment added above
+            } catch (_e) {
+              console.warn("Error parsing API error response:", _e);
               errorMsg = `${errorMsg} (Status: ${response.status} ${response.statusText})`;
             }
             throw new Error(errorMsg);

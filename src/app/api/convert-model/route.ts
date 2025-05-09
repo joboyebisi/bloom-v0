@@ -41,8 +41,8 @@ export async function POST(request: NextRequest) {
       try {
         const errJson = await microserviceResponse.json();
         errorBody = errJson.detail || JSON.stringify(errJson);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (_e) { // _e was e, ESLint disable comment added above
+      } catch (_e) {
+        console.warn("Error parsing microservice error response:", _e);
         errorBody = await microserviceResponse.text();
       }
       console.error(`Error from Python microservice (status ${microserviceResponse.status}):`, errorBody);
