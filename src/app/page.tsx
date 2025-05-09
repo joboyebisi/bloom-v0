@@ -4,7 +4,7 @@
 import { ImageUploader } from "@/components/image-uploader";
 import { ModelViewer } from "@/components/model-viewer";
 import { useModelContext } from "@/context/model-context";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Upload, Cpu, Eye, Download } from 'lucide-react'; // Added Download icon
 import { Button } from "@/components/ui/button"; // Added Button import
@@ -67,7 +67,7 @@ export default function Home() {
               try {
                 const errorResult = await response.json();
                 errorMsg = errorResult.error || errorMsg;
-              } catch (e) {
+              } catch (_e) {
                 // If parsing error JSON fails, use the status text
                 errorMsg = `${errorMsg} (Status: ${response.status} ${response.statusText})`;
               }

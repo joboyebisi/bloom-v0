@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // TODO: Use an environment variable for this URL in a real application
-const PYTHON_MICROSERVICE_URL = 'http://localhost:8001/convert';
+const PYTHON_MICROSERVICE_URL = 'http://localhost:8001/convert'; // This will be overridden by Vercel env var in page.tsx, this route itself might not be used if page.tsx calls microservice directly.
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,12 +19,18 @@ export async function POST(request: NextRequest) {
     console.log(`API Route (convert-model): Calling Python microservice for ${modelUrl} to ${targetFormat}`);
 
     // Call the Python microservice
-    const microserviceResponse = await fetch(PYTHON_MICROSERVICE_URL, {
+    // NOTE: The page.tsx now calls the Python microservice *directly* using NEXT_PUBLIC_CONVERSION_API_URL.
+    // This Next.js API route (src/app/api/convert-model/route.ts) might now be redundant if the frontend
+    // calls the Python microservice directly as configured.
+    // If this Next.js route IS still intended to be used as a proxy, then PYTHON_MICROSERVICE_URL here
+    // should also be an environment variable (e.g., process.env.PYTHON_MICROSERVICE_INTERNAL_URL)
+    // set on Vercel for the Next.js project.
+    const microserviceResponse = await fetch(PYTHON_MICROSERVICE_URL, { // Or process.env.ACTUAL_MICROSERVICE_URL_FOR_BACKEND
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         glb_url: modelUrl, // Parameter name expected by the Python service
         output_format: targetFormat.toLowerCase(), // Parameter name expected
       }),
@@ -36,7 +42,7 @@ export async function POST(request: NextRequest) {
       try {
         const errJson = await microserviceResponse.json();
         errorBody = errJson.detail || JSON.stringify(errJson);
-      } catch (e) {
+      } catch (_e) { // <-- The fix is here (e changed to _e)
         errorBody = await microserviceResponse.text();
       }
       console.error(`Error from Python microservice (status ${microserviceResponse.status}):`, errorBody);
@@ -57,7 +63,7 @@ export async function POST(request: NextRequest) {
     headers.set('Content-Length', fileData.byteLength.toString());
 
     console.log(`API Route (convert-model): Successfully received converted file. Type: ${contentType}, Size: ${fileData.byteLength} bytes. Forwarding to client.`);
-    
+
     return new NextResponse(fileData, {
       status: 200,
       headers: headers,
@@ -68,4 +74,4 @@ export async function POST(request: NextRequest) {
     const errorMessage = error instanceof Error ? error.message : 'Internal server error during conversion proxying.';
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
-} 
+}
