@@ -7,6 +7,7 @@ import { Footer } from "@/components/layout/footer";
 import { Toaster } from "@/components/ui/sonner"; // Added import
 // import { ModelProvider } from "../context/model-context"; // Using alias path
 import { ModelProvider } from "@/context/model-context";
+import { AuthProvider } from "@/lib/firebase/AuthContext";
 
 // Commented out Geist setup
 // const geistSans = Geist({
@@ -39,14 +40,16 @@ export default function RootLayout({
         // className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}
         className={`${inter.className} antialiased flex flex-col min-h-screen`}
       >
-        <ModelProvider>
-          <Navbar />
-          <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            {children}
-          </main>
-          <Footer />
-          <Toaster />
-        </ModelProvider>
+        <AuthProvider>
+          <ModelProvider>
+            <Navbar />
+            <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              {children}
+            </main>
+            <Footer />
+            <Toaster />
+          </ModelProvider>
+        </AuthProvider>
       </body>
     </html>
   );
